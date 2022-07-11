@@ -15,11 +15,24 @@ bad_destination = "Bad_images"
 good_directory = ""
 bad_directory = ""
 
+def check_good_bad_dir(path):
+    global good_directory
+    global bad_directory
+    filtered_images = []
+
+    for image in path:
+        for img in good_directory or bad_directory:
+            if image != img:
+                filtered_images.append(image)
+            else:
+                pass
+    return filtered_images
 
 def parse_folder(path):
     global good_directory
     global bad_directory
     images = sorted(glob.glob(f'{path}/*.jpg') + glob.glob(f'{path}/*.png'))
+    filtered_images = []
     good_directory = os.path.join(path, good_destination)
     bad_directory = os.path.join(path, bad_destination)
 
@@ -27,10 +40,16 @@ def parse_folder(path):
         os.mkdir(good_directory)
         os.mkdir(bad_directory)
         sg.popup("Good & Bad Images Directory Made")
-    else:
         return images
+    else:
+        for image in path:
+            if os.path.exists(good_directory + image) or os.path.exists(bad_directory + image) == True:
+                print(good_directory + image)
+            else:
+                print(good_directory + image)
+                filtered_images.append(image)
+            return images
     
-    return images
 
 def load_image(path, window):
     try:
@@ -53,17 +72,6 @@ def save_to_csv(path, values):
     with open({path} + '/curated.csv', 'w') as f:
         writer = csv.writer(f)
         writer = csv.writer(values)
-
-def check_good_bad_dir(path, image):
-    global good_directory
-    global bad_directory
-
-    for image in path:
-        for img in good_directory:
-            if image != img:
-                return image
-            else:
-                pass
          
 
 def update_window(window, location, images):
@@ -123,13 +131,13 @@ def main():
 
     layout = [
         [
-            sg.Column(elements),
+            sg.Column(elements, expand_x=True, expand_y=True),
             sg.VSeparator(),
-            sg.Column(options_selection_column)
+            sg.Column(options_selection_column, expand_x=True, expand_y=True)
         ]
     ]
 
-    window = sg.Window("Curation Tool", layout)
+    window = sg.Window("Curation Tool", layout, resizable=True)
     images = []
     location = 0
 
