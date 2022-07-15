@@ -7,6 +7,8 @@ import os
 import csv
 import detect_duplicates 
 import numpy as np
+import time
+from datetime import datetime
 
 from PIL import Image, ImageTk
 
@@ -20,31 +22,22 @@ bad_directory = ""
 pre_curate_done = False
 
 
-#FIX : check good & bad folders and if images are present then do not return them
-# to images that need to be curated
-# def check_good_bad_dir(path):
-#     global good_directory
-#     global bad_directory
-#     filtered_images = []
 
-#     for image in path:
-#         for img in good_directory or bad_directory:
-#             if image != img:
-#                 filtered_images.append(image)
-#             else:
-#                 pass
-#     return filtered_images
+def loader(path):
+    while True:
+        pre_curation(path)
+        time.sleep(0.5)
+
  
 def pre_curation(path):
-    global pre_curate_done
-    try:
-        while(pre_curate_done == False):
-            sg.PopupAnimated(sg.DEFAULT_BASE64_LOADING_GIF, background_color='white', time_between_frames=100, location=(600,400)) 
-            detect_duplicates.detect_bluriness.detect_blur(path)
-            detect_duplicates.duplicate_image_removal(path)
-            pre_curate_done = True
-    except:
-        print("Pre-Curation failed")
+    pre_curation_check = os.path.join(path, curated_destination)
+
+    if pre_curation_check != 0:
+        print("Pre-curation already ran. CURATE AWAY!")
+    else:
+        detect_duplicates.detect_bluriness.detect_blur(path)
+        detect_duplicates.duplicate_image_removal(path)
+            
 
 def parse_folder(path):
     global good_directory
@@ -60,7 +53,7 @@ def parse_folder(path):
     os.makedirs(curated_destination, exist_ok=True)
     os.makedirs(good_directory, exist_ok=True)
     os.makedirs(bad_directory, exist_ok=True)
-    previously_curated_images = sorted(glob.glob(f'{curated_destination}/*.png'))
+    previously_curated_images = sorted(glob.glob(f'{curated_destination}/*.png')) + sorted(glob.glob(f'{bad_directory}/*.png'))
 
     # checks the curated folder and returns only the images that have not
     # yet been curated 
@@ -94,7 +87,7 @@ def load_image(path, window):
     try:
         #loads image into window, opens up pop up if image can not be open
         image = Image.open(path)
-        image.thumbnail((900, 900))
+        image.thumbnail((1200, 1200))
         photo_img = ImageTk.PhotoImage(image)
         window["image"].update(data=photo_img)
     except:
@@ -115,8 +108,8 @@ def save_to_good_csv(path, values):
 
 def save_to_bad_csv(path, values):
     with open(os.path.join(path, 'curated_Bad_Images.csv'), 'w+', newline='') as file:
-        write = csv.writer(file)
-        write.writerows(values)         
+        writer = csv.writer(file)
+        writer.writerows(values)         
 
 def update_window(window, location, images):
     #updates elements in window
@@ -127,29 +120,40 @@ def update_window(window, location, images):
     except:
         sg.popup("Folder has been curated!")
 
+# def progress_bar():
+#     # set len(mylist) to length of current images
+#     progressbar = [
+#     [sg.ProgressBar(len(mylist), orientation='h', size=(51, 10), key='progressbar')]
+#     ]
+    
+#     layout = [
+#         [sg.Frame('Progress',layout= progressbar)]
+#     ]
+
 def main():
-    option = ''
+    
+
     
     options_selection_column = [
 
         [sg.Text("Choose option")],
         [    
-            sg.Radio('Good', "-OPTION-", key="-GOOD-"),
+            sg.Radio('Good', "-OPTION-", key="-GOOD-", enable_events=True),
         ],
         [
-            sg.Radio('Bad - Excessive Motion Blur', "-OPTION-", key="-BAD-")
+            sg.Radio('Bad - Excessive Motion Blur',  "-OPTION-", enable_events=True, key="-Bad-Excessive Motion Blur-")
         ],
         [
-            sg.Radio('Bad - Unpopulated', "-OPTION-", key="-BAD-")
+            sg.Radio('Bad - Unpopulated', "-OPTION-", key="Bad - Unpopulated", enable_events=True)
         ],
         [
-            sg.Radio('Bad - Occulation', "-OPTION-", key="-BAD-")
+            sg.Radio('Bad - Occulation',  "-OPTION-", key="Bad - Occulation", enable_events=True)
         ],
         [
-            sg.Radio('Bad - Duplicate', "-OPTION-", key="-BAD-")
+            sg.Radio('Bad - Duplicate',  "-OPTION-", key="Bad - Duplicate", enable_events=True)
         ],
         [
-            sg.Radio('Bad - Other', "-OPTION-", key="-BAD-")
+            sg.Radio('Bad - Other', "-OPTION-", key="Bad - Other", enable_events=True)
         ],
         [
             sg.Button('Submit')
@@ -187,7 +191,14 @@ def main():
 
     window = sg.Window("Curation Tool", layout, resizable=True, location=(600,400))
     images = []
+    good_images = []
+    bad_images = []
     location = 0
+    image_value = ''
+    now = datetime.now()
+    time_stamp = now.strftime("%d/%m/%Y %H:%M:%S")
+ 
+
 
     while True:
         event, values = window.read()
@@ -214,25 +225,35 @@ def main():
             load_image(images[location], window)
             update_window(window, location, images)
         # copies current image into bad or good dest folder & increments to next photo
+        elif event == "-Bad-Excessive Motion Blur-":
+            image_value = event
+        elif event == "Bad - Unpopulated":
+            image_value = event
+        elif event == "Bad - Occulation":
+            image_value = event
+        elif event == "Bad - Duplicate":
+            image_value = event
+        elif event == "Bad - Other":
+            image_value = event
+        elif event == "-GOOD":
+            image_value = event
         elif event == "Submit":
-            current_image = images[location]
             if values["-GOOD-"] == True:
                 copy_image(images[location], curated_destination)
-                save_to_good_csv(curated_destination, images[location])
+                image_value = "Good"
+                good_images.append(images[location] + image_value + time_stamp)
                 location += 1
                 load_image(images[location], window)
-            elif values["-BAD-"] == True:
-                copy_image(images[location], bad_directory)
-                save_to_bad_csv(bad_destination, images[location])
-                location += 1
-                load_image(images[location], window)
+                save_to_good_csv(curated_destination, good_images)
             else:
-                sg.popup("Choose Selection Before Submitting!")
-            update_window(window, location, images)
-            print(location, images[location])
+                copy_image(images[location], bad_directory)
+                location += 1
+                load_image(images[location], window)
+                bad_images.append(images[location] + image_value + time_stamp)
+                save_to_bad_csv(bad_directory, bad_images)
+        update_window(window, location, images)
+        print(images[location], image_value)
         
-            
-
     window.close()
 
 

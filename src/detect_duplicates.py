@@ -1,10 +1,9 @@
-#Code by Raajitha Gummadi/Kareem Saygbe
-# Commented by Kareem Saygbe 
+#Code by Raajitha Gummadi
+
 import os
 import csv
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import numpy as np
-import os
 import shutil
 import glob
 from PIL import Image
@@ -16,6 +15,7 @@ from tensorflow.keras.preprocessing.image import img_to_array
 
 dupli_images = "Bad_images/duplicate_images"
 image_path = "Good_images"
+verbose=1
 
 model = ResNet50(
     weights='imagenet',
@@ -52,12 +52,11 @@ def duplicate_image_removal(path):
     duplicates = []
     ctr = 0
     total_num_of_images = len(images)
-    print("processing: ", total_num_of_images)
+    print("PROCESSING ", total_num_of_images ," IMAGES & DISCARDING DUPLICATE IMAGES: ")
     for image in tqdm(images):
         current_image = os.path.join(image_path, image)
         im = Image.open(current_image).convert('RGB')
         embedding = generate_embeddings(im)
-        print(image)
         ctr = ctr + 1
         if embeddings == []:
             embeddings.append(embedding)
@@ -66,7 +65,7 @@ def duplicate_image_removal(path):
             List1 = np.array(embeddings)
             similarity_scores = List1.dot(embedding)/ (np.linalg.norm(List1, axis=1) * np.linalg.norm(embedding))
             max_similarity_idx = np.argmax(similarity_scores)
-            print (ctr, "out of", total_num_of_images, "=", similarity_scores[max_similarity_idx])
+            # print (ctr, "out of", total_num_of_images, "=", similarity_scores[max_similarity_idx])
             if similarity_scores[max_similarity_idx] > 0.97:
                 try:
                     duplicates.append(current_image)
@@ -90,11 +89,3 @@ def duplicate_image_removal(path):
         write = csv.writer(file)
         write.writerows(duplicates)
 
-def main():
-    path = '/home/ksaygbe/Pictures/example3/1'
-    detect_bluriness.detect_blur(path)
-    duplicate_image_removal(path)
-
-
-if __name__ == "__main__":
-    main()
