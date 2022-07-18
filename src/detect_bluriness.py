@@ -21,27 +21,27 @@ def detect_blur(path):
     bad_images = os.path.join(path, bad_images)
     blur = os.path.join(path, blur)
     good_images = os.path.join(path, good_images)
+    blurry_images = 0
 
 
     # makes the directories to send images to
-    if os.path.isdir(blur) == False and os.path.isdir(good_images) == False:
-        os.mkdir(bad_images)
-        os.mkdir(blur)
-        os.mkdir(good_images)
-    else:
-        pass
+    os.makedirs(bad_images, exist_ok=True)
+    os.makedirs(blur, exist_ok=True)
+    os.makedirs(good_images, exist_ok=True)
 
     # read image, convert to gray scale, compute the variance of Laplacian
     # the lower the number = more burry / set to < 50    
-    print("PROCESSING ", len(images) ," IMAGES & DISCARDING OVERLY DETECTED BLURRINESS: ")
+    print("PROCESSING ", len(images) ," IMAGES & DISCARDING BLURRY IMAGES:")
     for img in tqdm(images):
         try:
             image = cv.imread(img)
             gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
             variance_of_laplacian = cv.Laplacian(gray, cv.CV_64F).var()
-            if variance_of_laplacian < 50:
+            if variance_of_laplacian < 25:
                 shutil.copy(img, blur)
+                blurry_images = blurry_images + 1
             else:
                 shutil.copy(img, good_images)
         except:
             pass
+    print("found ", blurry_images, "blurry images" )

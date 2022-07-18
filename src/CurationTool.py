@@ -1,10 +1,12 @@
-# image_browser.py
+#!/usr/bin/python3
 
 import glob
 import PySimpleGUI as sg
 import shutil
 import os
 import csv
+
+from cv2 import blur
 import detect_duplicates 
 import numpy as np
 import time
@@ -22,19 +24,14 @@ bad_directory = ""
 pre_curate_done = False
 
 
-
-def loader(path):
-    while True:
-        pre_curation(path)
-        time.sleep(0.5)
-
  
 def pre_curation(path):
-    pre_curation_check = os.path.join(path, curated_destination)
+    blur_dir = os.path.join(path, 'Bad_images/blur_images')
+    dupli_dir = os.path.join(path, 'Bad_images/duplicate_images')
 
-    if pre_curation_check != 0:
-        print("Pre-curation already ran. CURATE AWAY!")
-    else:
+    if os.path.isdir(blur_dir) == True or os.path.isdir(dupli_dir) == True:
+        pass
+    else:     
         detect_duplicates.detect_bluriness.detect_blur(path)
         detect_duplicates.duplicate_image_removal(path)
             
@@ -71,14 +68,7 @@ def parse_folder(path):
         sg.popup("This Folder Has Already Been Curated!")
     else:
         return images_to_be_curated
-    
 
-    # if os.path.isdir(curated_destination) == False :
-    #     os.mkdir(curated_destination)
-    #     sg.popup("Directories Made In Folder")
-    #     return images_to_be_curated
-    # else:
-    #     return images_to_be_curated
 
     
     
@@ -224,7 +214,7 @@ def main():
                 location -= 1
             load_image(images[location], window)
             update_window(window, location, images)
-        # copies current image into bad or good dest folder & increments to next photo
+        # takes the input from the Radio chosen and saves value to image value to be passed on to csv file
         elif event == "-Bad-Excessive Motion Blur-":
             image_value = event
         elif event == "Bad - Unpopulated":
@@ -237,22 +227,26 @@ def main():
             image_value = event
         elif event == "-GOOD":
             image_value = event
+        # copies current image into bad or good dest folder & increments to next photo & saves to proceeding csv file
         elif event == "Submit":
-            if values["-GOOD-"] == True:
-                copy_image(images[location], curated_destination)
-                image_value = "Good"
-                good_images.append(images[location] + image_value + time_stamp)
-                location += 1
-                load_image(images[location], window)
-                save_to_good_csv(curated_destination, good_images)
-            else:
-                copy_image(images[location], bad_directory)
-                location += 1
-                load_image(images[location], window)
-                bad_images.append(images[location] + image_value + time_stamp)
-                save_to_bad_csv(bad_directory, bad_images)
-        update_window(window, location, images)
-        print(images[location], image_value)
+            try:
+                if values["-GOOD-"] == True:
+                    copy_image(images[location], curated_destination)
+                    image_value = "Good"
+                    good_images.append(images[location] + image_value + time_stamp)
+                    location += 1
+                    load_image(images[location], window)
+                    save_to_good_csv(curated_destination, good_images)
+                else:
+                    copy_image(images[location], bad_directory)
+                    location += 1
+                    load_image(images[location], window)
+                    bad_images.append(images[location] + image_value + time_stamp)
+                    save_to_bad_csv(bad_directory, bad_images)
+            except IndexError:
+                sg.popup("Folder has been curated!")
+            update_window(window, location, images)
+            print(images[location], image_value)
         
     window.close()
 
