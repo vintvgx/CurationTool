@@ -245,8 +245,11 @@ def main():
                     save_to_bad_csv(bad_directory, bad_images)
             except IndexError:
                 sg.popup("Folder has been curated!")
-            update_window(window, location, images)
-            print(images[location], image_value)
+            try:
+                update_window(window, location, images)
+                print(images[location], image_value)
+            except:
+                pass
         
     window.close()
 
